@@ -2,6 +2,7 @@
 using Blog.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Data.Common;
 
 namespace Blog.Controllers
 {
@@ -35,10 +36,21 @@ namespace Blog.Controllers
             [FromBody] Categoria model,
             [FromServices] BlogDataContext context)
         {
-            await context.Categorias.AddAsync(model);
-            await context.SaveChangesAsync();
+            try
+            {
+                await context.Categorias.AddAsync(model);
+                await context.SaveChangesAsync();
 
-            return Created($"v1/categorias/{model.Id}", model);
+                return Created($"v1/categorias/{model.Id}", model);
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "01XE01 - Não foi possível incluir a categoria");
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "01XE99 - Falha interna no servidor");
+            }
         }
 
         [HttpPut("v1/categorias/{id:int}")]
