@@ -10,6 +10,7 @@ namespace Blog.Controllers
     {
         [HttpGet("v1/categorias")]
         public async Task<IActionResult> GetAsync([FromServices] BlogDataContext context)
+        
         {
             var categorias = await context.Categorias.ToListAsync();
 
