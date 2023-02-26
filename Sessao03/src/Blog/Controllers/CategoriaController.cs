@@ -1,8 +1,8 @@
 ﻿using Blog.Data;
 using Blog.Models;
+using Blog.ViewModel;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Data.Common;
 
 namespace Blog.Controllers
 {
@@ -13,9 +13,16 @@ namespace Blog.Controllers
         public async Task<IActionResult> GetAsync([FromServices] BlogDataContext context)
         
         {
-            var categorias = await context.Categorias.ToListAsync();
+            try
+            {
+                var categorias = await context.Categorias.ToListAsync();
 
-            return Ok(categorias);
+                return Ok(categorias);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "01XE99 - Falha interna no servidor");
+            }
         }
 
         [HttpGet("v1/categorias/{id:int}")]
@@ -23,25 +30,44 @@ namespace Blog.Controllers
             [FromRoute] int id,
             [FromServices] BlogDataContext context)
         {
-            var categoria = await context.Categorias.FirstOrDefaultAsync(x => x.Id == id);
+            try
+            {
+                var categoria = await context.Categorias.FirstOrDefaultAsync(x => x.Id == id);
 
-            if (categoria == null)
-                return NotFound();
+                if (categoria == null)
+                    return NotFound();
 
-            return Ok(categoria);
+                return Ok(categoria);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "01XE99 - Falha interna no servidor");
+            }
         }
 
         [HttpPost("v1/categorias/")]
         public async Task<IActionResult> PostAsync(
-            [FromBody] Categoria model,
+            [FromBody] CriarCategoriaViewModel model,
             [FromServices] BlogDataContext context)
         {
             try
             {
-                await context.Categorias.AddAsync(model);
+                if (model is null)
+                {
+                    return BadRequest("01XE90 - Categoria Nula");
+                }
+
+                var categoria = new Categoria
+                {
+                    Id = 0, 
+                    Nome = model.Nome,
+                    Slug = model.Slug.ToLower()
+                };
+
+                await context.Categorias.AddAsync(categoria);
                 await context.SaveChangesAsync();
 
-                return Created($"v1/categorias/{model.Id}", model);
+                return Created($"v1/categorias/{categoria.Id}", categoria);
             }
             catch (DbUpdateException)
             {
@@ -59,18 +85,30 @@ namespace Blog.Controllers
             [FromBody] Categoria model,
             [FromServices] BlogDataContext context)
         {
-            var categoria = await context.Categorias.FirstOrDefaultAsync(x => x.Id == id);
+            try
+            {
+                var categoria = await context.Categorias.FirstOrDefaultAsync(x => x.Id == id);
 
-            if (categoria == null)
-                return NotFound();
+                if (categoria == null)
+                    return NotFound();
 
-            categoria.Nome = model.Nome;
-            categoria.Slug = model.Slug;
+                categoria.Nome = model.Nome;
+                categoria.Slug = model.Slug;
 
-            context.Categorias.Update(categoria);
-            await context.SaveChangesAsync();
+                context.Categorias.Update(categoria);
+                await context.SaveChangesAsync();
 
-            return Ok(categoria);
+                return Ok(categoria);
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "01XE02 - Não foi possível alterar a categoria");
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "01XE99 - Falha interna no servidor");
+            }
+
         }
 
         [HttpDelete("v1/categorias/{id:int}")]
@@ -78,15 +116,26 @@ namespace Blog.Controllers
             [FromRoute] int id,
             [FromServices] BlogDataContext context)
         {
-            var categoria = await context.Categorias.FirstOrDefaultAsync(x => x.Id == id);
+            try
+            {
+                var categoria = await context.Categorias.FirstOrDefaultAsync(x => x.Id == id);
 
-            if (categoria == null)
-                return NotFound();
+                if (categoria == null)
+                    return NotFound();
 
-            context.Categorias.Remove(categoria);
-            await context.SaveChangesAsync();
+                context.Categorias.Remove(categoria);
+                await context.SaveChangesAsync();
 
-            return Ok(categoria);
+                return NoContent();
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "01XE03 - Não foi possível excluir a categoria");
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "01XE99 - Falha interna no servidor");
+            }
         }
     }
 }
